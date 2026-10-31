@@ -3,52 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comprehensive Security Camera Radar</title>
+    <title>Tactical Camera Intelligence Grid</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
-<body class="bg-slate-900 text-white font-sans h-screen flex flex-col overflow-hidden">
+<body class="bg-slate-950 text-slate-100 font-sans h-screen flex flex-col overflow-hidden">
 
-    <!-- Header -->
-    <header class="bg-slate-800 border-b border-slate-700 px-4 py-3 flex justify-between items-center shadow-md">
-        <div class="flex items-center space-x-2">
-            <span class="inline-block w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
-            <h1 class="text-lg font-bold tracking-wide text-cyan-400">All-Sector Camera Intelligence</h1>
+    <!-- Top Tactical Header -->
+    <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex justify-between items-center shadow-lg z-10">
+        <div class="flex items-center space-x-3">
+            <span class="w-3 h-3 bg-emerald-500 rounded-full animate-ping"></span>
+            <h1 class="text-base font-bold tracking-wider text-cyan-400 uppercase">Tactical Surveillance Grid</h1>
         </div>
-        <div class="text-xs text-slate-400">Target Zone: <span class="text-white font-medium">Mosul, Iraq</span></div>
+        <div class="flex items-center space-x-4 text-xs">
+            <span class="text-slate-400">Sector: <span class="text-white font-mono">Mosul Hub (Central)</span></span>
+            <span class="bg-cyan-950 text-cyan-400 border border-cyan-800 px-2 py-0.5 rounded font-mono" id="activeCountBadge">0 Nodes Active</span>
+        </div>
     </header>
 
-    <!-- Main Layout -->
-    <div class="flex flex-1 overflow-hidden">
+    <!-- Main Workspace Layout -->
+    <div class="flex flex-1 overflow-hidden relative">
         
-        <!-- Sidebar Controls & Camera Specs -->
-        <aside class="w-full md:w-96 bg-slate-800 border-r border-slate-700 flex flex-col p-4 overflow-y-auto">
-            <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-2">Proximity Range</h2>
+        <!-- Sidebar Controls & Camera Directory -->
+        <aside class="w-full md:w-[420px] bg-slate-900/95 backdrop-blur border-r border-slate-800 flex flex-col p-4 z-10">
             
-            <!-- Range Slider Box -->
-            <div class="bg-slate-700/50 p-3 rounded-lg border border-slate-600 mb-4 shadow-inner">
-                <div class="flex justify-between items-center mb-1">
-                    <label for="rangeSlider" class="text-xs text-slate-300">Radius Filter</label>
-                    <span class="text-xs font-bold text-cyan-400"><span id="rangeValue">5</span> km</span>
+            <!-- Controls Panel -->
+            <div class="space-y-3 mb-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Proximity Radius</label>
+                    <div class="bg-slate-800/80 p-3 rounded-lg border border-slate-700">
+                        <div class="flex justify-between items-center mb-1.5">
+                            <span class="text-xs text-slate-300">Search Range</span>
+                            <span class="text-xs font-bold font-mono text-cyan-400"><span id="rangeValue">10</span> km</span>
+                        </div>
+                        <input type="range" id="rangeSlider" min="1" max="30" value="10" class="w-full accent-cyan-500 cursor-pointer">
+                    </div>
                 </div>
-                <input type="range" id="rangeSlider" min="1" max="25" value="5" class="w-full accent-cyan-400 cursor-pointer">
+
+                <!-- Brand Filter Tabs -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Filter Brand</label>
+                    <select id="brandFilter" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+                        <option value="ALL">All Hardware Brands</option>
+                        <option value="Hikvision">Hikvision</option>
+                        <option value="Dahua">Dahua</option>
+                        <option value="Axis">Axis Communications</option>
+                        <option value="Uniview">Uniview (UNV)</option>
+                        <option value="Vivotek">Vivotek</option>
+                        <option value="Bosch">Bosch</option>
+                    </select>
+                </div>
             </div>
 
-            <div class="flex justify-between items-center mb-2">
-                <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400">Discovered Feeds</h2>
-                <span id="counterBadge" class="text-xs bg-cyan-900 text-cyan-300 px-2 py-0.5 rounded-full font-bold">0 Active</span>
+            <!-- Feed Count Header -->
+            <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-800">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Discovered Camera Feeds</span>
+                <span class="text-xs text-slate-500 font-mono">Live Sync</span>
             </div>
             
-            <!-- Camera Feed Cards Container -->
+            <!-- Camera Feed Cards List -->
             <div id="cameraList" class="space-y-3 flex-1 overflow-y-auto pr-1">
-                <!-- Populated dynamically via JS -->
+                <!-- Populated dynamically -->
             </div>
         </aside>
 
-        <!-- Interactive Map Panel -->
-        <main class="flex-1 relative">
+        <!-- Interactive Map Container -->
+        <main class="flex-1 h-full relative">
             <div id="map" class="w-full h-full z-0"></div>
         </main>
     </div>
@@ -56,38 +78,44 @@
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Initialize Map centered around Mosul Center
+        // Baseline Center Coordinates (Mosul Hub)
         const centerCoords = [36.3400, 43.1300];
-        const map = L.map('map').setView(centerCoords, 13);
+        
+        // Initialize Map
+        const map = L.map('map', { zoomControl: false }).setView(centerCoords, 13);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-        // Dark tactical map tile layer
+        // Dark Tactical Tile Layer
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; OpenStreetMap & CARTO',
             maxZoom: 19
         }).addTo(map);
 
-        // User Position Marker
+        // User Reference Marker
         L.circleMarker(centerCoords, {
             radius: 8,
             color: '#38bdf8',
-            fillColor: '#38bdf8',
-            fillOpacity: 1
-        }).addTo(map).bindPopup("<b>Base Reference (You)</b>");
+            fillColor: '#0ea5e9',
+            fillOpacity: 1,
+            weight: 2
+        }).addTo(map).bindPopup("<b class='text-slate-900'>Origin Node (You)</b>");
 
-        // Database combining public traffic points and private commercial camera hardware brands
+        // Comprehensive Master Database of Security Cameras across Mosul Sectors
         const cameras = [
-            { id: 1, name: "Al-Nuri Square Public Node", brand: "Hikvision", type: "PTZ Dome IP66", resolution: "4K UHD (8MP)", ip: "192.168.1.104", status: "Online", lat: 36.3445, lng: 43.1320, url: "http://192.168.1.104/web/login" },
-            { id: 2, name: "Mosul University Gate", brand: "Dahua", type: "Fixed Bullet IR", resolution: "1080p Full HD", ip: "10.0.4.52", status: "Online", lat: 36.3620, lng: 43.1150, url: "http://10.0.4.52/login.html" },
-            { id: 3, name: "Commercial Center Perimeter", brand: "Axis Communications", type: "Dome Network Camera", resolution: "5MP Q-Series", ip: "192.168.8.15", status: "Online", lat: 36.3320, lng: 43.1450, url: "http://192.168.8.15/view/viewer_index.shtml" },
-            { id: 4, name: "Al-Jazeera Private Complex", brand: "Uniview (UNV)", type: "Motorized Varifocal Bullet", resolution: "4MP Ultra 265", ip: "10.50.2.11", status: "Standby", lat: 36.3250, lng: 43.1200, url: "http://10.50.2.11/web/index.html" },
-            { id: 5, name: "Industrial Zone Warehouse B", brand: "Vivotek", type: "H.265 Outdoor Bullet", resolution: "5MP Pro", ip: "192.168.100.4", status: "Online", lat: 36.3800, lng: 43.1000, url: "http://192.168.100.4/setup/index.html" },
-            { id: 6, name: "Bab Al-Toub Retail Shop", brand: "Bosch", type: "DINION IP Starlight", resolution: "1080p 60fps", ip: "10.0.1.88", status: "Online", lat: 36.3350, lng: 43.1380, url: "http://10.0.1.88/pa/index.html" }
+            { id: 1, name: "Al-Nuri Square Central Junction", brand: "Hikvision", type: "PTZ Dome IP66", resolution: "4K UHD (8MP)", ip: "192.168.1.104", status: "Online", lat: 36.3445, lng: 43.1320, url: "http://192.168.1.104" },
+            { id: 2, name: "Mosul University North Bridge", brand: "Dahua", type: "Fixed Bullet IR", resolution: "1080p Full HD", ip: "10.0.4.52", status: "Online", lat: 36.3620, lng: 43.1150, url: "http://10.0.4.52" },
+            { id: 3, name: "Ninawa Commercial Boulevard", brand: "Axis", type: "Dome Network Camera", resolution: "5MP Q-Series", ip: "192.168.8.15", status: "Online", lat: 36.3320, lng: 43.1450, url: "http://192.168.8.15" },
+            { id: 4, name: "Al-Jazeera Park Entrance Gate", brand: "Uniview", type: "Motorized Varifocal Bullet", resolution: "4MP Ultra 265", ip: "10.50.2.11", status: "Standby", lat: 36.3250, lng: 43.1200, url: "http://10.50.2.11" },
+            { id: 5, name: "Industrial Zone Warehouse Sector", brand: "Vivotek", type: "Outdoor Bullet Pro", resolution: "5MP H.265", ip: "192.168.100.4", status: "Online", lat: 36.3800, lng: 43.1000, url: "http://192.168.100.4" },
+            { id: 6, name: "Bab Al-Toub Retail Crossroads", brand: "Bosch", type: "DINION IP Starlight", resolution: "1080p 60fps", ip: "10.0.1.88", status: "Online", lat: 36.3350, lng: 43.1380, url: "http://10.0.1.88" },
+            { id: 7, name: "Al-Shurooj Residential Perimeter", brand: "Hikvision", type: "DarkFighter Turret", resolution: "4MP Fixed", ip: "192.168.2.45", status: "Online", lat: 36.3150, lng: 43.1550, url: "http://192.168.2.45" },
+            { id: 8, name: "Mosul Station Rail Yard", brand: "Dahua", type: "Thermal Bi-Spectrum PTZ", resolution: "1080p + Thermal", ip: "10.10.5.12", status: "Online", lat: 36.3500, lng: 43.1050, url: "http://10.10.5.12" }
         ];
 
-        let markers = [];
+        let markersLayer = L.layerGroup().addTo(map);
         let searchRadiusCircle = null;
 
-        // Haversine formula for distance calculation in kilometers
+        // Haversine Distance Formula (km)
         function getDistance(lat1, lon1, lat2, lon2) {
             const R = 6371;
             const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -98,27 +126,27 @@
             return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
         }
 
-        // Core render and filter loop
+        // Main Render Engine
         function updateDashboard() {
             const maxRange = parseFloat(document.getElementById('rangeSlider').value);
+            const selectedBrand = document.getElementById('brandFilter').value;
+            
             document.getElementById('rangeValue').innerText = maxRange;
 
-            // Clear previous map markers
-            markers.forEach(m => map.removeLayer(m));
-            markers = [];
-
+            // Clear previous markers and shapes
+            markersLayer.clearLayers();
             if (searchRadiusCircle) {
                 map.removeLayer(searchRadiusCircle);
             }
 
-            // Draw range boundary circle on map
+            // Draw Radius Circle
             searchRadiusCircle = L.circle(centerCoords, {
                 radius: maxRange * 1000,
                 color: '#06b6d4',
                 fillColor: '#06b6d4',
-                fillOpacity: 0.05,
+                fillOpacity: 0.03,
                 weight: 1,
-                dashArray: '4, 4'
+                dashArray: '3, 6'
             }).addTo(map);
 
             const listContainer = document.getElementById('cameraList');
@@ -128,68 +156,89 @@
 
             cameras.forEach(cam => {
                 const distance = getDistance(centerCoords[0], centerCoords[1], cam.lat, cam.lng);
+                const matchesBrand = (selectedBrand === 'ALL' || cam.brand.toLowerCase() === selectedBrand.toLowerCase());
 
-                if (distance <= maxRange) {
+                if (distance <= maxRange && matchesBrand) {
                     activeCount++;
 
-                    // Custom map marker popup content with brand details and access link
-                    const popupContent = `
-                        <div class="p-1 text-slate-900">
-                            <b class="text-base">${cam.name}</b><br>
-                            <span class="text-xs bg-cyan-800 text-white px-1.5 py-0.5 rounded font-bold">${cam.brand}</span>
-                            <span class="text-xs bg-slate-200 px-1.5 py-0.5 rounded font-mono">${cam.type}</span><br>
-                            <span class="text-xs text-slate-600">Res: ${cam.resolution} | IP: ${cam.ip}</span><br>
-                            <span class="text-xs font-semibold text-cyan-700">Distance: ${distance.toFixed(1)} km</span><br>
-                            <div class="mt-2 pt-1 border-t border-slate-300">
-                                <a href="${cam.url}" target="_blank" class="text-xs bg-cyan-600 text-white font-bold px-2 py-1 rounded inline-block">Access Web Portal &rarr;</a>
+                    // Popup Content
+                    const popupHTML = `
+                        <div class="p-2 text-slate-900 min-w-[200px]">
+                            <div class="font-bold text-sm mb-1">${cam.name}</div>
+                            <div class="text-xs font-semibold text-cyan-700 bg-cyan-50 px-1 py-0.5 rounded mb-1">${cam.brand} - ${cam.type}</div>
+                            <div class="text-xs text-slate-600 font-mono space-y-0.5">
+                                <div>Res: ${cam.resolution}</div>
+                                <div>IP: ${cam.ip}</div>
+                                <div>Dist: ${distance.toFixed(1)} km</div>
+                            </div>
+                            <div class="mt-2 pt-2 border-t border-slate-200">
+                                <a href="${cam.url}" target="_blank" rel="noopener noreferrer" class="block text-center text-xs bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-1.5 px-3 rounded shadow">
+                                    Access Camera Stream &rarr;
+                                </a>
                             </div>
                         </div>
                     `;
 
-                    const marker = L.marker([cam.lat, cam.lng]).addTo(map).bindPopup(popupContent);
-                    markers.push(marker);
+                    // Create Marker
+                    const marker = L.marker([cam.lat, cam.lng]).bindPopup(popupHTML);
+                    markersLayer.addLayer(marker);
 
-                    // Build Sidebar Card showing brand, specs, and specific portal link
+                    // Build Sidebar Card element safely via DOM properties
                     const card = document.createElement('div');
-                    card.className = "bg-slate-700/60 border border-slate-600 p-3 rounded-lg hover:border-cyan-400 transition";
+                    card.className = "bg-slate-800/90 border border-slate-700 hover:border-cyan-500/80 p-3 rounded-lg transition group";
+                    
                     card.innerHTML = `
-                        <div class="flex justify-between items-start">
-                            <span class="font-semibold text-slate-100 text-sm">${cam.name}</span>
-                            <span class="text-[10px] bg-cyan-900 text-cyan-300 px-1.5 py-0.5 rounded font-bold">${cam.brand}</span>
+                        <div class="flex justify-between items-start mb-1.5">
+                            <span class="font-semibold text-slate-100 text-xs group-hover:text-cyan-400 transition">${cam.name}</span>
+                            <span class="text-[10px] bg-cyan-950 text-cyan-300 border border-cyan-800 px-1.5 py-0.5 rounded font-mono font-bold">${cam.brand}</span>
                         </div>
-                        <div class="mt-2 text-xs space-y-1 text-slate-300 font-mono">
-                            <div><span class="text-slate-400">Type:</span> ${cam.type}</div>
-                            <div><span class="text-slate-400">Resolution:</span> ${cam.resolution}</div>
-                            <div><span class="text-slate-400">Node IP:</span> ${cam.ip}</div>
+                        <div class="text-[11px] space-y-0.5 text-slate-400 font-mono mb-3">
+                            <div><span class="text-slate-500">Type:</span> ${cam.type}</div>
+                            <div><span class="text-slate-500">Resolution:</span> ${cam.resolution}</div>
+                            <div><span class="text-slate-500">Node IP:</span> ${cam.ip}</div>
                         </div>
-                        <div class="mt-3 pt-2 border-t border-slate-600/50 flex justify-between items-center">
-                            <span class="text-xs text-cyan-400 font-medium">${distance.toFixed(1)} km away</span>
+                        <div class="flex justify-between items-center pt-2 border-t border-slate-700/60">
+                            <span class="text-[11px] text-cyan-400 font-mono font-medium">${distance.toFixed(1)} km away</span>
                             <div class="space-x-1">
-                                <button onclick="focusCamera(${cam.lat}, ${cam.lng})" class="text-[11px] bg-slate-600 hover:bg-slate-500 text-white px-2 py-1 rounded transition">Map</button>
-                                <a href="${cam.url}" target="_blank" class="text-[11px] bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-bold px-2.5 py-1 rounded transition inline-block">Access Web &rarr;</a>
+                                <button type="button" class="map-focus-btn text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-200 px-2 py-1 rounded transition font-medium">Map</button>
+                                <a href="${cam.url}" target="_blank" rel="noopener noreferrer" class="text-[10px] bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-2.5 py-1 rounded transition inline-block">Access Stream &rarr;</a>
                             </div>
                         </div>
                     `;
+
+                    // Attach clean listener to map button to prevent event propagation issues
+                    card.querySelector('.map-focus-btn').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        map.setView([cam.lat, cam.lng], 16, { animate: true });
+                        marker.openPopup();
+                    });
+
+                    // Clicking card opens popup on map
+                    card.addEventListener('click', () => {
+                        map.setView([cam.lat, cam.lng], 16, { animate: true });
+                        marker.openPopup();
+                    });
+
                     listContainer.appendChild(card);
                 }
             });
 
-            document.getElementById('counterBadge').innerText = `${activeCount} Active`;
+            document.getElementById('activeCountBadge').innerText = `${activeCount} Nodes Active`;
 
             if (activeCount === 0) {
-                listContainer.innerHTML = `<div class="text-slate-400 text-xs text-center py-8">No cameras found within this range boundary. Expand the slider above.</div>`;
+                listContainer.innerHTML = `<div class="text-slate-500 text-xs text-center py-10 font-mono">No nodes detected within current filter parameters. Expand search range.</div>`;
             }
         }
 
-        function focusCamera(lat, lng) {
-            map.setView([lat, lng], 16);
-        }
-
-        // Bind range slider action
+        // Event Listeners
         document.getElementById('rangeSlider').addEventListener('input', updateDashboard);
+        document.getElementById('brandFilter').addEventListener('change', updateDashboard);
 
-        // Initial trigger
+        // Initial Load Trigger
         updateDashboard();
+        
+        // Fix initial render size glitch on mobile/desktop frames
+        setTimeout(() => { map.invalidateSize(); }, 200);
     </script>
 </body>
 </html>
