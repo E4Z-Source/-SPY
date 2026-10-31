@@ -14,10 +14,11 @@
         @media (min-width: 768px) { #app-container { flex-direction: row; } }
         #map { width: 100%; height: 50vh; flex: 1; z-index: 1; }
         @media (min-width: 768px) { #map { height: 100%; } }
-        .crt-overlay {
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
-            background-size: 100% 4px, 6px 100%;
+        .radar-sweep {
+            background: conic-gradient(from 0deg at 50% 50%, rgba(6, 182, 212, 0) 0deg, rgba(6, 182, 212, 0.3) 360deg);
+            animation: spin 4s linear infinite;
         }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -78,7 +79,7 @@
         </main>
     </div>
 
-    <!-- Live Stream Modal Video Player -->
+    <!-- God's Eye Tactical Feed Modal -->
     <div id="streamModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[9999] hidden flex items-center justify-center p-4">
         <div class="bg-slate-900 border-2 border-cyan-500 rounded-xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col">
             
@@ -86,40 +87,42 @@
             <div class="bg-slate-800 px-4 py-3 flex justify-between items-center border-b border-slate-700 shrink-0">
                 <div class="flex items-center space-x-2">
                     <span class="w-2.5 h-2.5 bg-red-500 rounded-full animate-ping"></span>
-                    <h3 id="modalTitle" class="text-sm font-bold text-cyan-400 font-mono">Live Video Stream</h3>
+                    <h3 id="modalTitle" class="text-sm font-bold text-cyan-400 font-mono">God's Eye Recon Stream</h3>
                 </div>
                 <button onclick="closeStreamModal()" class="text-slate-300 hover:text-white text-xl font-bold px-2">&times;</button>
             </div>
             
-            <!-- Active Video Player Screen -->
-            <div class="p-2 bg-black relative aspect-video flex items-center justify-center overflow-hidden border-b border-slate-800">
-                <div class="absolute inset-0 crt-overlay pointer-events-none z-10"></div>
+            <!-- Tactical Feed Command Screen -->
+            <div class="p-6 bg-slate-950 relative aspect-video flex flex-col items-center justify-center text-center overflow-hidden border-b border-slate-800">
+                <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.2)_0,transparent_80%)] pointer-events-none"></div>
                 
-                <!-- Real HTML5 Video Player Element playing a public broadcast stream -->
-                <video id="liveVideoElement" class="w-full h-full object-contain" autoplay muted playsinline controls>
-                    <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
-                    Your browser does not support video streaming.
-                </video>
-
-                <!-- Live HD Badge Overlay -->
-                <div class="absolute top-3 left-3 bg-red-600 text-white px-2.5 py-1 rounded text-[10px] font-mono font-bold flex items-center space-x-1.5 shadow z-20">
-                    <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-                    <span>LIVE DECRYPTED FEED (60 FPS)</span>
+                <!-- Rotating Radar & Target Reticle -->
+                <div class="w-36 h-36 rounded-full border border-cyan-500/40 flex items-center justify-center mb-4 relative overflow-hidden shadow-[0_0_25px_rgba(6,182,212,0.3)]">
+                    <div class="absolute inset-0 radar-sweep"></div>
+                    <div class="w-4 h-4 bg-cyan-400 rounded-full animate-ping z-10"></div>
+                    <div class="absolute inset-2 border border-dashed border-cyan-400/30 rounded-full"></div>
                 </div>
 
-                <!-- Signal Status Overlay -->
-                <div class="absolute top-3 right-3 bg-slate-900/90 border border-slate-700 px-2.5 py-1 rounded text-[10px] text-emerald-400 font-mono font-bold z-20">
-                    SIGNAL: 100% STABLE
+                <div class="text-cyan-300 font-mono text-sm md:text-base font-extrabold tracking-widest uppercase mb-1 drop-shadow" id="modalNodeName">NODE LINK ESTABLISHED</div>
+                <div class="text-slate-300 font-mono text-xs max-w-md bg-slate-900/90 px-3 py-1.5 rounded border border-cyan-500/30 mb-2" id="modalCoordsText">LAT: 36.3445° N | LNG: 43.1320° E | ENCRYPTION: AES-256</div>
+                <div class="text-emerald-400 font-mono text-[11px]" id="modalAuthText">AUTH SUCCESSFUL: admin / pass</div>
+
+                <!-- Live Feed Badge -->
+                <div class="absolute top-3 left-3 bg-red-600 text-white px-2.5 py-1 rounded text-[10px] font-mono font-bold flex items-center space-x-1.5 shadow z-20">
+                    <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                    <span>GOD'S EYE FEED ACTIVE (60 FPS)</span>
+                </div>
+
+                <!-- Signal Status -->
+                <div class="absolute top-3 right-3 bg-slate-900 border border-slate-700 px-2.5 py-1 rounded text-[10px] text-emerald-400 font-mono font-bold z-20">
+                    UPLINK: 100% SECURE
                 </div>
             </div>
 
-            <!-- Modal Footer with Credentials & Specs -->
-            <div class="bg-slate-800 px-4 py-3 flex flex-col md:flex-row justify-between items-start md:items-center text-xs font-mono text-slate-200 shrink-0 gap-2">
+            <!-- Modal Footer -->
+            <div class="bg-slate-800 px-4 py-3 flex justify-between items-center text-xs font-mono text-slate-200 shrink-0">
                 <div id="modalSpecs">Brand: Hikvision | Res: 4K UHD | IP: 192.168.1.104</div>
-                <div class="flex items-center space-x-2">
-                    <span class="text-slate-400">Auth: <span class="text-emerald-400 font-bold" id="modalCreds">admin / 12345</span></span>
-                    <button onclick="closeStreamModal()" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-3 py-1 rounded transition shadow">Close Feed</button>
-                </div>
+                <button onclick="closeStreamModal()" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-4 py-1.5 rounded transition shadow">Disconnect Feed</button>
             </div>
         </div>
     </div>
@@ -218,22 +221,16 @@
             return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
         }
 
-        // Open live video stream modal with specific camera credentials
-        function openStreamModal(camName, brand, resolution, ip, user, pass) {
-            document.getElementById('modalTitle').innerText = `Live Stream: ${camName}`;
+        function openStreamModal(camName, brand, resolution, ip, user, pass, lat, lng) {
+            document.getElementById('modalTitle').innerText = `God's Eye Feed: ${camName}`;
+            document.getElementById('modalNodeName').innerText = `CONNECTED TO: ${camName.toUpperCase()}`;
             document.getElementById('modalSpecs').innerText = `Brand: ${brand} | Res: ${resolution} | IP: ${ip}`;
-            document.getElementById('modalCreds').innerText = `${user} / ${pass}`;
-            
-            const videoEl = document.getElementById('liveVideoElement');
-            videoEl.currentTime = 0;
-            videoEl.play().catch(e => console.log("Autoplay restricted by mobile policy"));
-            
+            document.getElementById('modalCoordsText').innerText = `LAT: ${lat.toFixed(4)}° N | LNG: ${lng.toFixed(4)}° E | IP: ${ip}`;
+            document.getElementById('modalAuthText').innerText = `AUTH SUCCESSFUL: ${user} / ${pass}`;
             document.getElementById('streamModal').classList.remove('hidden');
         }
 
         function closeStreamModal() {
-            const videoEl = document.getElementById('liveVideoElement');
-            videoEl.pause();
             document.getElementById('streamModal').classList.add('hidden');
         }
 
@@ -251,7 +248,7 @@
             searchRadiusCircle = L.circle(centerCoords, {
                 radius: maxRange * 1000,
                 color: '#38bdf8',
-                fillColor: '#38bdf8',
+                fillColor: '#0ea5e9',
                 fillOpacity: 0.08,
                 weight: 1.5,
                 dashArray: '4, 4'
@@ -278,8 +275,8 @@
                                 <div><b>User:</b> ${cam.username}</div>
                                 <div><b>Pass:</b> ${cam.password}</div>
                             </div>
-                            <button type="button" onclick="openStreamModal('${cam.name}', '${cam.brand}', '${cam.resolution}', '${cam.ip}', '${cam.username}', '${cam.password}')" class="w-full text-center text-xs bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-1.5 px-3 rounded shadow">
-                                View Live Feed &rarr;
+                            <button type="button" onclick="openStreamModal('${cam.name}', '${cam.brand}', '${cam.resolution}', '${cam.ip}', '${cam.username}', '${cam.password}', ${cam.lat}, ${cam.lng})" class="w-full text-center text-xs bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-1.5 px-3 rounded shadow">
+                                God's Eye View &rarr;
                             </button>
                         </div>
                     `;
@@ -303,7 +300,7 @@
                             <span class="text-[11px] text-slate-400 font-mono">${distance.toFixed(1)} km away</span>
                             <div class="space-x-1">
                                 <button type="button" class="map-focus-btn text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-200 px-2 py-1 rounded transition font-medium">Map</button>
-                                <button type="button" class="stream-btn text-[10px] bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-2.5 py-1 rounded transition">View Live Feed &rarr;</button>
+                                <button type="button" class="stream-btn text-[10px] bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-2.5 py-1 rounded transition">God's Eye &rarr;</button>
                             </div>
                         </div>
                     `;
@@ -316,7 +313,7 @@
 
                     card.querySelector('.stream-btn').addEventListener('click', (e) => {
                         e.stopPropagation();
-                        openStreamModal(cam.name, cam.brand, cam.resolution, cam.ip, cam.username, cam.password);
+                        openStreamModal(cam.name, cam.brand, cam.resolution, cam.ip, cam.username, cam.password, cam.lat, cam.lng);
                     });
 
                     card.addEventListener('click', () => {
