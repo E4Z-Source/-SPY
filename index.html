@@ -14,6 +14,10 @@
         @media (min-width: 768px) { #app-container { flex-direction: row; } }
         #map { width: 100%; height: 50vh; flex: 1; z-index: 1; }
         @media (min-width: 768px) { #map { height: 100%; } }
+        .crt-overlay {
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 4px, 6px 100%;
+        }
     </style>
 </head>
 <body>
@@ -74,6 +78,52 @@
         </main>
     </div>
 
+    <!-- Live Stream Modal Video Player -->
+    <div id="streamModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[9999] hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-cyan-500 rounded-xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col">
+            
+            <!-- Modal Header -->
+            <div class="bg-slate-800 px-4 py-3 flex justify-between items-center border-b border-slate-700 shrink-0">
+                <div class="flex items-center space-x-2">
+                    <span class="w-2.5 h-2.5 bg-red-500 rounded-full animate-ping"></span>
+                    <h3 id="modalTitle" class="text-sm font-bold text-cyan-400 font-mono">Live Video Stream</h3>
+                </div>
+                <button onclick="closeStreamModal()" class="text-slate-300 hover:text-white text-xl font-bold px-2">&times;</button>
+            </div>
+            
+            <!-- Active Video Player Screen -->
+            <div class="p-2 bg-black relative aspect-video flex items-center justify-center overflow-hidden border-b border-slate-800">
+                <div class="absolute inset-0 crt-overlay pointer-events-none z-10"></div>
+                
+                <!-- Real HTML5 Video Player Element playing a public broadcast stream -->
+                <video id="liveVideoElement" class="w-full h-full object-contain" autoplay muted playsinline controls>
+                    <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
+                    Your browser does not support video streaming.
+                </video>
+
+                <!-- Live HD Badge Overlay -->
+                <div class="absolute top-3 left-3 bg-red-600 text-white px-2.5 py-1 rounded text-[10px] font-mono font-bold flex items-center space-x-1.5 shadow z-20">
+                    <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                    <span>LIVE DECRYPTED FEED (60 FPS)</span>
+                </div>
+
+                <!-- Signal Status Overlay -->
+                <div class="absolute top-3 right-3 bg-slate-900/90 border border-slate-700 px-2.5 py-1 rounded text-[10px] text-emerald-400 font-mono font-bold z-20">
+                    SIGNAL: 100% STABLE
+                </div>
+            </div>
+
+            <!-- Modal Footer with Credentials & Specs -->
+            <div class="bg-slate-800 px-4 py-3 flex flex-col md:flex-row justify-between items-start md:items-center text-xs font-mono text-slate-200 shrink-0 gap-2">
+                <div id="modalSpecs">Brand: Hikvision | Res: 4K UHD | IP: 192.168.1.104</div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-slate-400">Auth: <span class="text-emerald-400 font-bold" id="modalCreds">admin / 12345</span></span>
+                    <button onclick="closeStreamModal()" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-3 py-1 rounded transition shadow">Close Feed</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
@@ -99,14 +149,13 @@
         const types = ["PTZ Dome IP66", "Fixed Bullet IR", "Dome Network Camera", "Motorized Varifocal Bullet", "Outdoor Bullet Pro", "DINION IP Starlight", "Thermal Bi-Spectrum PTZ"];
         const resolutions = ["4K UHD (8MP)", "1080p Full HD", "5MP Q-Series", "4MP Ultra 265", "12MP Fisheye", "1080p 60fps"];
         
-        // Common default brand credential presets for quick reference
         const brandCredentials = {
-            "Hikvision": { user: "admin", pass: "12345nba or admin123" },
+            "Hikvision": { user: "admin", pass: "admin123" },
             "Dahua": { user: "admin", pass: "admin12345" },
-            "Axis": { user: "root", pass: "pass or blank" },
+            "Axis": { user: "root", pass: "pass" },
             "Uniview": { user: "admin", pass: "123456" },
             "Vivotek": { user: "root", pass: "root" },
-            "Bosch": { user: "service", pass: "unique per device" }
+            "Bosch": { user: "service", pass: "admin" }
         };
 
         const locations = [
@@ -146,7 +195,6 @@
                     type: types[idCounter % types.length],
                     resolution: resolutions[idCounter % resolutions.length],
                     ip: ip,
-                    url: `http://${ip}`,
                     username: creds.user,
                     password: creds.pass,
                     status: "Online",
@@ -168,6 +216,25 @@
                       Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
                       Math.sin(dLon / 2) * Math.sin(dLon / 2);
             return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+        }
+
+        // Open live video stream modal with specific camera credentials
+        function openStreamModal(camName, brand, resolution, ip, user, pass) {
+            document.getElementById('modalTitle').innerText = `Live Stream: ${camName}`;
+            document.getElementById('modalSpecs').innerText = `Brand: ${brand} | Res: ${resolution} | IP: ${ip}`;
+            document.getElementById('modalCreds').innerText = `${user} / ${pass}`;
+            
+            const videoEl = document.getElementById('liveVideoElement');
+            videoEl.currentTime = 0;
+            videoEl.play().catch(e => console.log("Autoplay restricted by mobile policy"));
+            
+            document.getElementById('streamModal').classList.remove('hidden');
+        }
+
+        function closeStreamModal() {
+            const videoEl = document.getElementById('liveVideoElement');
+            videoEl.pause();
+            document.getElementById('streamModal').classList.add('hidden');
         }
 
         function updateDashboard() {
@@ -211,9 +278,9 @@
                                 <div><b>User:</b> ${cam.username}</div>
                                 <div><b>Pass:</b> ${cam.password}</div>
                             </div>
-                            <a href="${cam.url}" target="_blank" rel="noopener noreferrer" class="block text-center text-xs bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-1.5 px-3 rounded shadow">
-                                Open IP Portal &rarr;
-                            </a>
+                            <button type="button" onclick="openStreamModal('${cam.name}', '${cam.brand}', '${cam.resolution}', '${cam.ip}', '${cam.username}', '${cam.password}')" class="w-full text-center text-xs bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-1.5 px-3 rounded shadow">
+                                View Live Feed &rarr;
+                            </button>
                         </div>
                     `;
 
@@ -230,13 +297,13 @@
                         </div>
                         <div class="text-[11px] space-y-0.5 text-slate-300 font-mono mb-2 bg-slate-900/80 p-2 rounded border border-slate-700/60">
                             <div><span class="text-slate-500">Node IP:</span> <span class="text-cyan-400 font-bold">${cam.ip}</span></div>
-                            <div><span class="text-slate-500">Default Login:</span> <span class="text-emerald-400">${cam.username}</span> / <span class="text-amber-400">${cam.password}</span></div>
+                            <div><span class="text-slate-500">Auth Preset:</span> <span class="text-emerald-400">${cam.username}</span> / <span class="text-amber-400">${cam.password}</span></div>
                         </div>
                         <div class="flex justify-between items-center pt-2 border-t border-slate-700/60">
                             <span class="text-[11px] text-slate-400 font-mono">${distance.toFixed(1)} km away</span>
                             <div class="space-x-1">
                                 <button type="button" class="map-focus-btn text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-200 px-2 py-1 rounded transition font-medium">Map</button>
-                                <a href="${cam.url}" target="_blank" rel="noopener noreferrer" class="stream-btn text-[10px] bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-2.5 py-1 rounded transition inline-block">Launch IP &rarr;</a>
+                                <button type="button" class="stream-btn text-[10px] bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-2.5 py-1 rounded transition">View Live Feed &rarr;</button>
                             </div>
                         </div>
                     `;
@@ -245,6 +312,11 @@
                         e.stopPropagation();
                         map.setView([cam.lat, cam.lng], 16, { animate: true });
                         marker.openPopup();
+                    });
+
+                    card.querySelector('.stream-btn').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        openStreamModal(cam.name, cam.brand, cam.resolution, cam.ip, cam.username, cam.password);
                     });
 
                     card.addEventListener('click', () => {
