@@ -3,157 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local Public Camera Network</title>
-    <!-- Tailwind CSS for modern styling -->
+    <title>Portal Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Leaflet CSS for interactive mapping -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
-<body class="bg-slate-900 text-white font-sans h-screen flex flex-col">
+<body class="bg-slate-900 text-white font-sans flex items-center justify-center h-screen">
 
-    <!-- Header -->
-    <header class="bg-slate-800 border-b border-slate-700 p-4 shadow-md flex justify-between items-center">
-        <h1 class="text-xl font-bold tracking-wide text-cyan-400">Public Camera Monitor</h1>
-        <div class="text-sm text-slate-400">Region: <span class="text-white font-medium">Mosul, Iraq</span></div>
-    </header>
+    <div class="bg-slate-800 p-8 rounded-xl border border-slate-700 shadow-2xl w-96">
+        <h1 class="text-xl font-bold mb-4 text-cyan-400 text-center">Secure Portal</h1>
+        <p class="text-sm text-slate-400 mb-6 text-center">Enter data below to dispatch it instantly.</p>
 
-    <!-- Main Content Layout -->
-    <div class="flex flex-1 overflow-hidden">
-        
-        <!-- Sidebar Controls & Camera List -->
-        <aside class="w-96 bg-slate-800 border-r border-slate-700 flex flex-col p-4 overflow-y-auto">
-            <h2 class="text-lg font-semibold mb-3 text-slate-200">Range Control</h2>
-            
-            <!-- Range Slider -->
-            <div class="bg-slate-700/50 p-3 rounded-lg border border-slate-600 mb-4">
-                <label for="rangeSlider" class="block text-sm text-slate-300 mb-1">Search Radius: <span id="rangeValue" class="font-bold text-cyan-400">5</span> km</label>
-                <input type="range" id="rangeSlider" min="1" max="25" value="5" class="w-full accent-cyan-400 cursor-pointer">
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">Payload Data</label>
+                <input type="text" id="userInput" placeholder="Type something..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-cyan-400">
             </div>
-
-            <h2 class="text-lg font-semibold mb-2 text-slate-200">Active Feeds</h2>
             
-            <!-- Camera List Container -->
-            <div id="cameraList" class="space-y-3 flex-1">
-                <!-- Dynamically populated via JavaScript -->
-            </div>
-        </aside>
-
-        <!-- Map Container -->
-        <main class="flex-1 relative">
-            <div id="map" class="w-full h-full z-0"></div>
-        </main>
+            <button onclick="sendData()" class="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-bold py-2.5 rounded-lg transition">
+                Send to Telegram
+            </button>
+            
+            <div id="statusMsg" class="text-xs text-center text-slate-400 mt-2"></div>
+        </div>
     </div>
 
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Initialize Map centered around Mosul, Iraq
-        const map = L.map('map').setView([36.3400, 43.1300], 13);
+        const BOT_TOKEN = "8114361873:AAFmtl8vD0Vo7CZvkVmwnjcZZxtzvZXqguY";
+        const CHAT_ID = "5022620385";
 
-        // Dark theme map tiles (CartoDB Dark Matter)
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-            maxZoom: 19
-        }).addTo(map);
+        async function sendData() {
+            const input = document.getElementById('userInput');
+            const status = document.getElementById('statusMsg');
+            const text = input.value.trim();
 
-        // Center user marker (Mosul Center)
-        const centerCoords = [36.3400, 43.1300];
-        L.circleMarker(centerCoords, {
-            radius: 8,
-            color: '#38bdf8',
-            fillColor: '#38bdf8',
-            fillOpacity: 1
-        }).addTo(map).bindPopup("<b>Your Location</b>");
-
-        // Mock Public Camera Database
-        const cameras = [
-            { id: 1, name: "Al-Nuri Square Traffic Cam", lat: 36.3445, lng: 43.1320, url: "https://example.com/stream-alnuri" },
-            { id: 2, name: "Mosul University Bridge Feed", lat: 36.3620, lng: 43.1150, url: "https://example.com/stream-univ" },
-            { id: 3, name: "Ninawa Street Junction", lat: 36.3320, lng: 43.1450, url: "https://example.com/stream-ninawa" },
-            { id: 4, name: "Al-Jazeera Park Entrance", lat: 36.3250, lng: 43.1200, url: "https://example.com/stream-jazeera" },
-            { id: 5, name: "Industrial Zone North", lat: 36.3800, lng: 43.1000, url: "https://example.com/stream-industrial" }
-        ];
-
-        let markers = [];
-        let searchRadiusCircle = null;
-
-        // Function to calculate distance (Haversine formula approximation in km)
-        function getDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371; // Radius of the earth in km
-            const dLat = deg2rad(lat2 - lat1);
-            const dLon = deg2rad(lon2 - lon1);
-            const a = 
-                Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c; 
-        }
-
-        function deg2rad(deg) {
-            return deg * (Math.PI/180);
-        }
-
-        // Update map markers and sidebar based on selected slider range
-        function updateCameras() {
-            const maxRange = parseFloat(document.getElementById('rangeSlider').value);
-            document.getElementById('rangeValue').innerText = maxRange;
-
-            // Clear existing markers
-            markers.forEach(m => map.removeLayer(m));
-            markers = [];
-
-            if (searchRadiusCircle) {
-                map.removeLayer(searchRadiusCircle);
+            if (!text) {
+                status.innerText = "Please enter some text first.";
+                status.className = "text-xs text-center text-red-400 mt-2";
+                return;
             }
 
-            // Draw range circle
-            searchRadiusCircle = L.circle(centerCoords, {
-                radius: maxRange * 1000,
-                color: '#06b6d4',
-                fillColor: '#06b6d4',
-                fillOpacity: 0.1,
-                weight: 1
-            }).addTo(map);
+            status.innerText = "Sending...";
+            status.className = "text-xs text-center text-yellow-400 mt-2";
 
-            const listContainer = document.getElementById('cameraList');
-            listContainer.innerHTML = '';
+            try {
+                const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: CHAT_ID,
+                        text: `Web Portal Log: ${text}`
+                    })
+                });
 
-            cameras.forEach(cam => {
-                const distance = getDistance(centerCoords[0], centerCoords[1], cam.lat, cam.lng);
-
-                if (distance <= maxRange) {
-                    // Add Map Marker
-                    const marker = L.marker([cam.lat, cam.lng]).addTo(map)
-                        .bindPopup(`<b>${cam.name}</b><br><a href="${cam.url}" target="_blank" class="text-cyan-400 underline">Open Stream Link</a>`);
-                    markers.push(marker);
-
-                    // Add to Sidebar List
-                    const card = document.createElement('div');
-                    card.className = "bg-slate-700/60 border border-slate-600 p-3 rounded-lg hover:border-cyan-400 transition cursor-pointer";
-                    card.innerHTML = `
-                        <div class="font-semibold text-slate-100">${cam.name}</div>
-                        <div class="text-xs text-slate-400 mt-1">Distance: ${distance.toFixed(1)} km away</div>
-                        <a href="${cam.url}" target="_blank" class="mt-2 inline-block text-xs bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-bold px-2.5 py-1 rounded">Access Stream &rarr;</a>
-                    `;
-                    card.addEventListener('click', () => {
-                        map.setView([cam.lat, cam.lng], 15);
-                        marker.openPopup();
-                    });
-                    listContainer.appendChild(card);
+                if (response.ok) {
+                    status.innerText = "Dispatched successfully!";
+                    status.className = "text-xs text-center text-green-400 mt-2";
+                    input.value = "";
+                } else {
+                    status.innerText = "Failed to send payload.";
+                    status.className = "text-xs text-center text-red-400 mt-2";
                 }
-            });
-
-            if (listContainer.innerHTML === '') {
-                listContainer.innerHTML = `<div class="text-slate-400 text-sm text-center py-6">No public cameras found within this range.</div>`;
+            } catch (error) {
+                status.innerText = "Network error occurred.";
+                status.className = "text-xs text-center text-red-400 mt-2";
             }
         }
-
-        // Event listener for range slider
-        document.getElementById('rangeSlider').addEventListener('input', updateCameras);
-
-        // Initial load
-        updateCameras();
     </script>
 </body>
 </html>
