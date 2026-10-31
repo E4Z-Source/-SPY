@@ -21,7 +21,7 @@
     <div id="app-container">
         
         <!-- Sidebar Controls & Camera Directory -->
-        <aside class="w-full md:w-[460px] bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col p-4 z-25 shrink-0 h-[50vh] md:h-full">
+        <aside class="w-full md:w-[480px] bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col p-4 z-25 shrink-0 h-[50vh] md:h-full">
             
             <!-- Top Header -->
             <div class="flex justify-between items-center mb-3 pb-3 border-b border-slate-800 shrink-0">
@@ -58,12 +58,12 @@
 
             <!-- Feed Count Header -->
             <div class="flex justify-between items-center mb-2 pb-1.5 border-b border-slate-800 text-xs shrink-0">
-                <span class="font-bold uppercase tracking-wider text-slate-400">Discovered Camera Feeds</span>
-                <span class="text-emerald-400 font-mono">Satellite Synchronized</span>
+                <span class="font-bold uppercase tracking-wider text-slate-400">Discovered Camera Feeds & Credentials</span>
+                <span class="text-emerald-400 font-mono">IP Sync Active</span>
             </div>
             
             <!-- Camera Feed Cards List -->
-            <div id="cameraList" class="space-y-2.5 flex-1 overflow-y-auto pr-1">
+            <div id="cameraList" class="space-y-3 flex-1 overflow-y-auto pr-1">
                 <!-- Populated dynamically -->
             </div>
         </aside>
@@ -99,13 +99,15 @@
         const types = ["PTZ Dome IP66", "Fixed Bullet IR", "Dome Network Camera", "Motorized Varifocal Bullet", "Outdoor Bullet Pro", "DINION IP Starlight", "Thermal Bi-Spectrum PTZ"];
         const resolutions = ["4K UHD (8MP)", "1080p Full HD", "5MP Q-Series", "4MP Ultra 265", "12MP Fisheye", "1080p 60fps"];
         
-        // Array of direct individual live camera feed links and webcams
-        const directLiveFeeds = [
-            "https://www.earthcam.com/usa/newyork/timessquare/?cam=tsrobo1",
-            "https://www.skylinewebcams.com/en/webcam/united-states/new-york/new-york/times-square.html",
-            "https://www.earthcam.com/world/ireland/dublin/?cam=templebar",
-            "https://www.skylinewebcams.com/en/webcam/italy/venice/san-marco/piazza-san-marco.html"
-        ];
+        // Common default brand credential presets for quick reference
+        const brandCredentials = {
+            "Hikvision": { user: "admin", pass: "12345nba or admin123" },
+            "Dahua": { user: "admin", pass: "admin12345" },
+            "Axis": { user: "root", pass: "pass or blank" },
+            "Uniview": { user: "admin", pass: "123456" },
+            "Vivotek": { user: "root", pass: "root" },
+            "Bosch": { user: "service", pass: "unique per device" }
+        };
 
         const locations = [
             { name: "Al-Nuri Square", baseLat: 36.3445, baseLng: 43.1320 },
@@ -133,16 +135,20 @@
             for (let i = 1; i <= 18; i++) {
                 const latOffset = (Math.sin(idCounter) * 0.035) + ((i % 3) * 0.004);
                 const lngOffset = (Math.cos(idCounter) * 0.035) + ((i % 4) * 0.004);
-                const targetUrl = directLiveFeeds[idCounter % directLiveFeeds.length];
+                const brand = brands[idCounter % brands.length];
+                const ip = `192.168.${(idCounter % 50) + 1}.${(idCounter % 250) + 1}`;
+                const creds = brandCredentials[brand];
                 
                 cameras.push({
                     id: idCounter,
                     name: `${loc.name} Node #${i}`,
-                    brand: brands[idCounter % brands.length],
+                    brand: brand,
                     type: types[idCounter % types.length],
                     resolution: resolutions[idCounter % resolutions.length],
-                    ip: `192.168.${(idCounter % 50) + 1}.${(idCounter % 250) + 1}`,
-                    url: targetUrl,
+                    ip: ip,
+                    url: `http://${ip}`,
+                    username: creds.user,
+                    password: creds.pass,
                     status: "Online",
                     lat: loc.baseLat + latOffset,
                     lng: loc.baseLng + lngOffset
@@ -197,19 +203,17 @@
                     activeCount++;
 
                     const popupHTML = `
-                        <div class="p-2 text-slate-900 min-w-[210px]">
+                        <div class="p-2 text-slate-900 min-w-[220px]">
                             <div class="font-bold text-sm mb-1">${cam.name}</div>
                             <div class="text-xs font-semibold text-cyan-700 bg-cyan-50 px-1.5 py-0.5 rounded mb-1">${cam.brand} - ${cam.type}</div>
-                            <div class="text-xs text-slate-600 font-mono space-y-0.5">
-                                <div>Res: ${cam.resolution}</div>
-                                <div>IP: ${cam.ip}</div>
-                                <div>Dist: ${distance.toFixed(1)} km</div>
+                            <div class="text-xs text-slate-700 font-mono space-y-0.5 bg-slate-100 p-1.5 rounded mb-2">
+                                <div><b>IP:</b> ${cam.ip}</div>
+                                <div><b>User:</b> ${cam.username}</div>
+                                <div><b>Pass:</b> ${cam.password}</div>
                             </div>
-                            <div class="mt-2 pt-2 border-t border-slate-200">
-                                <a href="${cam.url}" target="_blank" rel="noopener noreferrer" class="block text-center text-xs bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-1.5 px-3 rounded shadow">
-                                    View Live Feed &rarr;
-                                </a>
-                            </div>
+                            <a href="${cam.url}" target="_blank" rel="noopener noreferrer" class="block text-center text-xs bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-1.5 px-3 rounded shadow">
+                                Open IP Portal &rarr;
+                            </a>
                         </div>
                     `;
 
@@ -224,16 +228,15 @@
                             <span class="font-semibold text-slate-100 text-xs group-hover:text-cyan-400 transition">${cam.name}</span>
                             <span class="text-[10px] bg-cyan-950 text-cyan-300 border border-cyan-800 px-1.5 py-0.5 rounded font-mono font-bold">${cam.brand}</span>
                         </div>
-                        <div class="text-[11px] space-y-0.5 text-slate-400 font-mono mb-2">
-                            <div><span class="text-slate-500">Type:</span> ${cam.type}</div>
-                            <div><span class="text-slate-500">Resolution:</span> ${cam.resolution}</div>
-                            <div><span class="text-slate-500">Node IP:</span> ${cam.ip}</div>
+                        <div class="text-[11px] space-y-0.5 text-slate-300 font-mono mb-2 bg-slate-900/80 p-2 rounded border border-slate-700/60">
+                            <div><span class="text-slate-500">Node IP:</span> <span class="text-cyan-400 font-bold">${cam.ip}</span></div>
+                            <div><span class="text-slate-500">Default Login:</span> <span class="text-emerald-400">${cam.username}</span> / <span class="text-amber-400">${cam.password}</span></div>
                         </div>
                         <div class="flex justify-between items-center pt-2 border-t border-slate-700/60">
-                            <span class="text-[11px] text-cyan-400 font-mono font-medium">${distance.toFixed(1)} km away</span>
+                            <span class="text-[11px] text-slate-400 font-mono">${distance.toFixed(1)} km away</span>
                             <div class="space-x-1">
                                 <button type="button" class="map-focus-btn text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-200 px-2 py-1 rounded transition font-medium">Map</button>
-                                <a href="${cam.url}" target="_blank" rel="noopener noreferrer" class="stream-btn text-[10px] bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-2.5 py-1 rounded transition inline-block">View Live Feed &rarr;</a>
+                                <a href="${cam.url}" target="_blank" rel="noopener noreferrer" class="stream-btn text-[10px] bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-2.5 py-1 rounded transition inline-block">Launch IP &rarr;</a>
                             </div>
                         </div>
                     `;
