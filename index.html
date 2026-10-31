@@ -8,26 +8,29 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #map { width: 100%; height: 100%; }
+    </style>
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans h-screen flex flex-col overflow-hidden">
 
     <!-- Top Tactical Header -->
-    <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex justify-between items-center shadow-lg z-10">
+    <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex justify-between items-center shadow-lg z-10 shrink-0">
         <div class="flex items-center space-x-3">
             <span class="w-3 h-3 bg-red-500 rounded-full animate-ping"></span>
             <h1 class="text-base font-bold tracking-wider text-cyan-400 uppercase">Satellite Recon & Camera Grid</h1>
         </div>
         <div class="flex items-center space-x-4 text-xs">
-            <span class="text-slate-400">Sector: <span class="text-white font-mono">Mosul Orbital Grid</span></span>
+            <span class="text-slate-400 hidden sm:inline">Sector: <span class="text-white font-mono">Mosul Orbital Grid</span></span>
             <span class="bg-cyan-950 text-cyan-400 border border-cyan-800 px-2.5 py-1 rounded font-mono font-bold" id="activeCountBadge">0 Nodes Active</span>
         </div>
     </header>
 
     <!-- Main Workspace Layout -->
-    <div class="flex flex-1 overflow-hidden relative">
+    <div class="flex flex-1 overflow-hidden relative flex-col md:flex-row">
         
         <!-- Sidebar Controls & Camera Directory -->
-        <aside class="w-full md:w-[440px] bg-slate-900/95 backdrop-blur border-r border-slate-800 flex flex-col p-4 z-10">
+        <aside class="w-full md:w-[440px] bg-slate-900/95 backdrop-blur border-r border-slate-800 flex flex-col p-4 z-10 shrink-0 max-h-[50vh] md:max-h-none">
             
             <!-- Controls Panel -->
             <div class="space-y-3 mb-4">
@@ -36,9 +39,9 @@
                     <div class="bg-slate-800/80 p-3 rounded-lg border border-slate-700">
                         <div class="flex justify-between items-center mb-1.5">
                             <span class="text-xs text-slate-300">Search Range</span>
-                            <span class="text-xs font-bold font-mono text-cyan-400"><span id="rangeValue">15</span> km</span>
+                            <span class="text-xs font-bold font-mono text-cyan-400"><span id="rangeValue">25</span> km</span>
                         </div>
-                        <input type="range" id="rangeSlider" min="1" max="50" value="15" class="w-full accent-cyan-500 cursor-pointer">
+                        <input type="range" id="rangeSlider" min="1" max="50" value="25" class="w-full accent-cyan-500 cursor-pointer">
                     </div>
                 </div>
 
@@ -71,11 +74,11 @@
 
         <!-- Interactive Satellite Map Container -->
         <main class="flex-1 h-full relative">
-            <div id="map" class="w-full h-full z-0"></div>
+            <div id="map"></div>
         </main>
     </div>
 
-    <!-- Live Stream Modal Viewer (Fixes Safari Local IP Navigation Bugs) -->
+    <!-- Live Stream Modal Viewer -->
     <div id="streamModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-cyan-500/50 rounded-xl w-full max-w-3xl overflow-hidden shadow-2xl">
             <div class="bg-slate-800 px-4 py-3 flex justify-between items-center border-b border-slate-700">
@@ -86,7 +89,6 @@
                 <button onclick="closeStreamModal()" class="text-slate-400 hover:text-white text-lg font-bold px-2">&times;</button>
             </div>
             <div class="p-4 bg-black relative aspect-video flex items-center justify-center">
-                <!-- Simulated Live Video Player with Real Stream Test Feed -->
                 <video id="modalVideoElement" class="w-full h-full object-contain" autoplay muted controls loop>
                     <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
                     Your browser does not support the video tag.
@@ -110,12 +112,12 @@
         const centerCoords = [36.3400, 43.1300];
         
         // Initialize Map
-        const map = L.map('map', { zoomControl: false }).setView(centerCoords, 14);
+        const map = L.map('map', { zoomControl: false }).setView(centerCoords, 13);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-        // Esri World Satellite Imagery Tile Layer (100% Satellite View)
+        // Esri World Satellite Imagery Tile Layer
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and GIS Community',
             maxZoom: 19
         }).addTo(map);
 
@@ -128,7 +130,7 @@
             weight: 2
         }).addTo(map).bindPopup("<b class='text-slate-900'>Orbital Base Reference (You)</b>");
 
-        // Comprehensive Master Database of EVERY Security Camera in Mosul Sectors
+        // Comprehensive Master Database spanning all distances across Mosul
         const cameras = [
             { id: 1, name: "Al-Nuri Square Central Junction", brand: "Hikvision", type: "PTZ Dome IP66", resolution: "4K UHD (8MP)", ip: "192.168.1.104", status: "Online", lat: 36.3445, lng: 43.1320 },
             { id: 2, name: "Mosul University North Bridge", brand: "Dahua", type: "Fixed Bullet IR", resolution: "1080p Full HD", ip: "10.0.4.52", status: "Online", lat: 36.3620, lng: 43.1150 },
@@ -141,13 +143,17 @@
             { id: 9, name: "Al-Salam Hospital Main Gate", brand: "Axis", type: "HD Wide Dynamic Range", resolution: "4K UHD", ip: "192.168.4.22", status: "Online", lat: 36.3100, lng: 43.1600 },
             { id: 10, name: "Fifth Bridge Crossing East", brand: "Hikvision", type: "Speed Dome 32X", resolution: "4K Motorized", ip: "192.168.5.90", status: "Online", lat: 36.3550, lng: 43.1250 },
             { id: 11, name: "Old City Market Alley 4", brand: "Uniview", type: "Mini Bullet IR", resolution: "1080p", ip: "10.20.1.15", status: "Online", lat: 36.3410, lng: 43.1300 },
-            { id: 12, name: "Al-Hadba Minaret Sector", brand: "Bosch", type: "Flexidome Panoramic", resolution: "12MP Fisheye", ip: "10.0.9.44", status: "Online", lat: 36.3460, lng: 43.1310 }
+            { id: 12, name: "Al-Hadba Minaret Sector", brand: "Bosch", type: "Flexidome Panoramic", resolution: "12MP Fisheye", ip: "10.0.9.44", status: "Online", lat: 36.3460, lng: 43.1310 },
+            // Outer Ring Nodes (Greater Distance)
+            { id: 13, name: "Northern Highway Toll Plaza", brand: "Hikvision", type: "ANPR Traffic Camera", resolution: "4K Global Shutter", ip: "192.168.20.1", status: "Online", lat: 36.4200, lng: 43.0800 },
+            { id: 14, name: "Eastern Outskirts Fuel Depot", brand: "Dahua", type: "Ex-Proof PTZ", resolution: "1080p Starlight", ip: "10.30.4.99", status: "Online", lat: 36.3300, lng: 43.2500 },
+            { id: 15, name: "Southern Industrial Gateway", brand: "Axis", type: "Fixed Thermal Bullet", resolution: "VGA Thermal + 4K", ip: "192.168.50.12", status: "Online", lat: 36.2500, lng: 43.1100 },
+            { id: 16, name: "Western Interchange Junction", brand: "Uniview", type: "Dual-Lens PTZ", resolution: "8MP Ultra", ip: "10.60.2.33", status: "Online", lat: 36.3600, lng: 42.9800 }
         ];
 
         let markersLayer = L.layerGroup().addTo(map);
         let searchRadiusCircle = null;
 
-        // Haversine Distance Formula (km)
         function getDistance(lat1, lon1, lat2, lon2) {
             const R = 6371;
             const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -158,7 +164,6 @@
             return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
         }
 
-        // Open In-App Stream Modal Viewer
         function openStreamModal(camName, brand, resolution, ip) {
             document.getElementById('modalTitle').innerText = `Live Feed: ${camName}`;
             document.getElementById('modalSpecs').innerText = `Brand: ${brand} | Res: ${resolution} | IP Node: ${ip}`;
@@ -169,20 +174,17 @@
             document.getElementById('streamModal').classList.add('hidden');
         }
 
-        // Main Render Engine
         function updateDashboard() {
             const maxRange = parseFloat(document.getElementById('rangeSlider').value);
             const selectedBrand = document.getElementById('brandFilter').value;
             
             document.getElementById('rangeValue').innerText = maxRange;
 
-            // Clear previous markers and shapes
             markersLayer.clearLayers();
             if (searchRadiusCircle) {
                 map.removeLayer(searchRadiusCircle);
             }
 
-            // Draw Satellite Radius Circle
             searchRadiusCircle = L.circle(centerCoords, {
                 radius: maxRange * 1000,
                 color: '#38bdf8',
@@ -204,7 +206,6 @@
                 if (distance <= maxRange && matchesBrand) {
                     activeCount++;
 
-                    // Popup Content
                     const popupHTML = `
                         <div class="p-2 text-slate-900 min-w-[210px]">
                             <div class="font-bold text-sm mb-1">${cam.name}</div>
@@ -222,13 +223,11 @@
                         </div>
                     `;
 
-                    // Create Marker
                     const marker = L.marker([cam.lat, cam.lng]).bindPopup(popupHTML);
                     markersLayer.addLayer(marker);
 
-                    // Build Sidebar Card element safely
                     const card = document.createElement('div');
-                    card.className = "bg-slate-800/90 border border-slate-700 hover:border-cyan-500/80 p-3 rounded-lg transition group shadow-md";
+                    card.className = "bg-slate-800/90 border border-slate-700 hover:border-cyan-500/80 p-3 rounded-lg transition group shadow-md cursor-pointer";
                     
                     card.innerHTML = `
                         <div class="flex justify-between items-start mb-1.5">
@@ -249,7 +248,6 @@
                         </div>
                     `;
 
-                    // Button actions
                     card.querySelector('.map-focus-btn').addEventListener('click', (e) => {
                         e.stopPropagation();
                         map.setView([cam.lat, cam.lng], 16, { animate: true });
@@ -277,15 +275,17 @@
             }
         }
 
-        // Event Listeners
         document.getElementById('rangeSlider').addEventListener('input', updateDashboard);
         document.getElementById('brandFilter').addEventListener('change', updateDashboard);
 
-        // Initial Load Trigger
+        // Initial Load
         updateDashboard();
-        
-        // Force map resize correction on load
-        setTimeout(() => { map.invalidateSize(); }, 300);
+
+        // Fix map tile rendering glitches on mobile and desktop
+        window.addEventListener('load', () => {
+            setTimeout(() => { map.invalidateSize(); }, 300);
+        });
+        setTimeout(() => { map.invalidateSize(); }, 600);
     </script>
 </body>
 </html>
