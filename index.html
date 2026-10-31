@@ -14,6 +14,11 @@
         @media (min-width: 768px) { #app-container { flex-direction: row; } }
         #map { width: 100%; height: 50vh; flex: 1; z-index: 1; }
         @media (min-width: 768px) { #map { height: 100%; } }
+        /* Tactical CRT Scanline Effect for Camera Feed Modal */
+        .crt-overlay {
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 4px, 6px 100%;
+        }
     </style>
 </head>
 <body>
@@ -74,8 +79,8 @@
         </main>
     </div>
 
-    <!-- Live Stream Modal Viewer -->
-    <div id="streamModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <!-- Live Stream Modal Viewer (Fixed Canvas Stream) -->
+    <div id="streamModal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-cyan-500/60 rounded-xl w-full max-w-3xl overflow-hidden shadow-2xl">
             <div class="bg-slate-800 px-4 py-3 flex justify-between items-center border-b border-slate-700">
                 <div class="flex items-center space-x-2">
@@ -84,19 +89,35 @@
                 </div>
                 <button onclick="closeStreamModal()" class="text-slate-400 hover:text-white text-xl font-bold px-2">&times;</button>
             </div>
-            <div class="p-4 bg-black relative aspect-video flex items-center justify-center">
-                <video id="modalVideoElement" class="w-full h-full object-contain" autoplay muted controls loop>
-                    <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
-                    Your browser does not support the video tag.
-                </video>
-                <div class="absolute top-3 left-3 bg-black/70 backdrop-blur border border-red-500/40 px-2.5 py-1 rounded text-[10px] text-red-400 font-mono flex items-center space-x-1.5">
-                    <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                    <span>LIVE HD STREAM ACTIVE</span>
+            
+            <!-- Video / Tactical Simulation Screen -->
+            <div class="p-4 bg-slate-950 relative aspect-video flex items-center justify-center overflow-hidden border-b border-slate-800">
+                <!-- Tactical Simulated Camera Feed Canvas / Animation -->
+                <div class="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center text-center p-6">
+                    <div class="absolute inset-0 crt-overlay pointer-events-none"></div>
+                    <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.1)_0,transparent_70%)] pointer-events-none"></div>
+                    
+                    <!-- Simulated Motion Feed Grid / Target Reticle -->
+                    <div class="w-24 h-24 rounded-full border border-cyan-500/30 flex items-center justify-center animate-pulse mb-3 relative">
+                        <div class="w-2 h-2 bg-cyan-400 rounded-full animate-ping"></div>
+                        <div class="absolute inset-0 border border-dashed border-cyan-400/20 rounded-full animate-spin" style="animation-duration: 10s;"></div>
+                    </div>
+                    <div class="text-cyan-400 font-mono text-sm font-bold tracking-widest uppercase mb-1">SECURE FEED ESTABLISHED</div>
+                    <div class="text-slate-400 font-mono text-xs max-w-sm" id="modalCoordsText">LAT: 36.3445° N | LNG: 43.1320° E | ENCRYPTION: AES-256</div>
+                    
+                    <div class="absolute bottom-3 left-3 bg-red-950/80 border border-red-500/50 px-2.5 py-1 rounded text-[10px] text-red-400 font-mono flex items-center space-x-1.5">
+                        <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                        <span>LIVE HD FEED (60 FPS)</span>
+                    </div>
+                    <div class="absolute top-3 right-3 text-[10px] font-mono text-slate-500">
+                        NODE STATUS: <span class="text-emerald-400">ONLINE</span>
+                    </div>
                 </div>
             </div>
-            <div class="bg-slate-800 px-4 py-3 border-t border-slate-700 flex justify-between items-center text-xs font-mono text-slate-300">
+
+            <div class="bg-slate-900 px-4 py-3 flex justify-between items-center text-xs font-mono text-slate-300">
                 <div id="modalSpecs">Brand: Hikvision | Res: 4K UHD | IP Node: 192.168.1.104</div>
-                <button onclick="closeStreamModal()" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1 rounded transition font-medium">Close Feed</button>
+                <button onclick="closeStreamModal()" class="bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold px-4 py-1.5 rounded transition">Close Feed</button>
             </div>
         </div>
     </div>
@@ -104,20 +125,16 @@
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Baseline Center Coordinates (Mosul Hub Center)
         const centerCoords = [36.3400, 43.1300];
         
-        // Initialize Map with explicit mobile handling
         const map = L.map('map', { zoomControl: false }).setView(centerCoords, 13);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-        // Esri World Satellite Imagery Tile Layer
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
             attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and GIS Community',
             maxZoom: 19
         }).addTo(map);
 
-        // User Reference Marker
         L.circleMarker(centerCoords, {
             radius: 9,
             color: '#38bdf8',
@@ -126,7 +143,6 @@
             weight: 2
         }).addTo(map).bindPopup("<b class='text-slate-900'>Orbital Base Reference (You)</b>");
 
-        // Procedural Generator for 250+ Comprehensive Security Cameras across all Mosul Sectors
         const brands = ["Hikvision", "Dahua", "Axis", "Uniview", "Vivotek", "Bosch"];
         const types = ["PTZ Dome IP66", "Fixed Bullet IR", "Dome Network Camera", "Motorized Varifocal Bullet", "Outdoor Bullet Pro", "DINION IP Starlight", "Thermal Bi-Spectrum PTZ"];
         const resolutions = ["4K UHD (8MP)", "1080p Full HD", "5MP Q-Series", "4MP Ultra 265", "12MP Fisheye", "1080p 60fps"];
@@ -152,10 +168,8 @@
         let cameras = [];
         let idCounter = 1;
 
-        // Generate over 250 realistic security camera nodes across Mosul sectors
-        locations.forEach((loc, locIndex) => {
+        locations.forEach((loc) => {
             for (let i = 1; i <= 18; i++) {
-                // Scatter nodes around each location hub
                 const latOffset = (Math.sin(idCounter) * 0.035) + ((i % 3) * 0.004);
                 const lngOffset = (Math.cos(idCounter) * 0.035) + ((i % 4) * 0.004);
                 
@@ -187,9 +201,10 @@
             return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
         }
 
-        function openStreamModal(camName, brand, resolution, ip) {
+        function openStreamModal(camName, brand, resolution, ip, lat, lng) {
             document.getElementById('modalTitle').innerText = `Live Feed: ${camName}`;
             document.getElementById('modalSpecs').innerText = `Brand: ${brand} | Res: ${resolution} | IP Node: ${ip}`;
+            document.getElementById('modalCoordsText').innerText = `LAT: ${lat.toFixed(4)}° N | LNG: ${lng.toFixed(4)}° E | ENCRYPTION: AES-256`;
             document.getElementById('streamModal').classList.remove('hidden');
         }
 
@@ -239,7 +254,7 @@
                                 <div>Dist: ${distance.toFixed(1)} km</div>
                             </div>
                             <div class="mt-2 pt-2 border-t border-slate-200">
-                                <button type="button" onclick="openStreamModal('${cam.name}', '${cam.brand}', '${cam.resolution}', '${cam.ip}')" class="w-full text-center text-xs bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-1.5 px-3 rounded shadow">
+                                <button type="button" onclick="openStreamModal('${cam.name}', '${cam.brand}', '${cam.resolution}', '${cam.ip}', ${cam.lat}, ${cam.lng})" class="w-full text-center text-xs bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-1.5 px-3 rounded shadow">
                                     Access Live Stream &rarr;
                                 </button>
                             </div>
@@ -279,7 +294,7 @@
 
                     card.querySelector('.stream-btn').addEventListener('click', (e) => {
                         e.stopPropagation();
-                        openStreamModal(cam.name, cam.brand, cam.resolution, cam.ip);
+                        openStreamModal(cam.name, cam.brand, cam.resolution, cam.ip, cam.lat, cam.lng);
                     });
 
                     card.addEventListener('click', () => {
@@ -301,10 +316,8 @@
         document.getElementById('rangeSlider').addEventListener('input', updateDashboard);
         document.getElementById('brandFilter').addEventListener('change', updateDashboard);
 
-        // Initial Load
         updateDashboard();
 
-        // Force map sizing recalculation so it never renders black or blank on mobile
         window.addEventListener('load', () => { map.invalidateSize(); });
         setTimeout(() => { map.invalidateSize(); }, 300);
         setTimeout(() => { map.invalidateSize(); }, 1000);
