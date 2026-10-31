@@ -74,52 +74,6 @@
         </main>
     </div>
 
-    <!-- Live Stream Modal Viewer (High-Visibility Tactical Feed) -->
-    <div id="streamModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[9999] hidden flex items-center justify-center p-4">
-        <div class="bg-slate-900 border-2 border-cyan-500 rounded-xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col">
-            
-            <!-- Modal Header -->
-            <div class="bg-slate-800 px-4 py-3 flex justify-between items-center border-b border-slate-700 shrink-0">
-                <div class="flex items-center space-x-2">
-                    <span class="w-2.5 h-2.5 bg-red-500 rounded-full animate-ping"></span>
-                    <h3 id="modalTitle" class="text-sm font-bold text-cyan-400 font-mono">Live Stream Feed</h3>
-                </div>
-                <button onclick="closeStreamModal()" class="text-slate-300 hover:text-white text-xl font-bold px-2">&times;</button>
-            </div>
-            
-            <!-- Bright Video Simulation Screen -->
-            <div class="p-6 bg-slate-900 relative aspect-video flex flex-col items-center justify-center text-center overflow-hidden border-b border-slate-800">
-                <div class="absolute inset-0 bg-gradient-to-b from-cyan-950/30 to-slate-950/80 pointer-events-none"></div>
-                
-                <!-- Glowing Tactical Target Reticle -->
-                <div class="w-32 h-32 rounded-full border-2 border-cyan-400/60 flex items-center justify-center animate-pulse mb-4 relative shadow-[0_0_20px_rgba(6,182,212,0.3)]">
-                    <div class="w-3 h-3 bg-cyan-400 rounded-full animate-ping"></div>
-                    <div class="absolute inset-0 border border-dashed border-cyan-400/40 rounded-full animate-spin" style="animation-duration: 10s;"></div>
-                </div>
-
-                <div class="text-cyan-300 font-mono text-sm md:text-base font-extrabold tracking-widest uppercase mb-1 drop-shadow">SECURE RTMPS STREAM ONLINE</div>
-                <div class="text-slate-300 font-mono text-xs max-w-md bg-slate-800/80 px-3 py-1.5 rounded border border-slate-700" id="modalCoordsText">LAT: 36.3445° N | LNG: 43.1320° E | BITRATE: 14.2 Mbps</div>
-                
-                <!-- Live Badge -->
-                <div class="absolute top-3 left-3 bg-red-600 text-white px-2.5 py-1 rounded text-[10px] font-mono font-bold flex items-center space-x-1.5 shadow">
-                    <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-                    <span>LIVE HD (60 FPS)</span>
-                </div>
-
-                <!-- Signal Status -->
-                <div class="absolute top-3 right-3 bg-slate-800 border border-slate-600 px-2.5 py-1 rounded text-[10px] text-emerald-400 font-mono font-bold">
-                    SIGNAL: 100% STABLE
-                </div>
-            </div>
-
-            <!-- Modal Footer -->
-            <div class="bg-slate-800 px-4 py-3 flex justify-between items-center text-xs font-mono text-slate-200 shrink-0">
-                <div id="modalSpecs">Brand: Hikvision | Res: 4K UHD | IP Node: 192.168.1.104</div>
-                <button onclick="closeStreamModal()" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-4 py-1.5 rounded transition shadow">Close Feed</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
@@ -144,6 +98,15 @@
         const brands = ["Hikvision", "Dahua", "Axis", "Uniview", "Vivotek", "Bosch"];
         const types = ["PTZ Dome IP66", "Fixed Bullet IR", "Dome Network Camera", "Motorized Varifocal Bullet", "Outdoor Bullet Pro", "DINION IP Starlight", "Thermal Bi-Spectrum PTZ"];
         const resolutions = ["4K UHD (8MP)", "1080p Full HD", "5MP Q-Series", "4MP Ultra 265", "12MP Fisheye", "1080p 60fps"];
+        
+        // Array of real public web camera portals / live streaming directories that open directly in Safari
+        const publicStreamPortals = [
+            "https://www.insecam.org",
+            "https://www.earthcam.com",
+            "https://www.skylinewebcams.com",
+            "https://www.webcamgalore.com"
+        ];
+
         const locations = [
             { name: "Al-Nuri Square", baseLat: 36.3445, baseLng: 43.1320 },
             { name: "Mosul University", baseLat: 36.3620, baseLng: 43.1150 },
@@ -171,6 +134,9 @@
                 const latOffset = (Math.sin(idCounter) * 0.035) + ((i % 3) * 0.004);
                 const lngOffset = (Math.cos(idCounter) * 0.035) + ((i % 4) * 0.004);
                 
+                // Assign a working public portal URL to each camera node
+                const targetUrl = publicStreamPortals[idCounter % publicStreamPortals.length];
+                
                 cameras.push({
                     id: idCounter,
                     name: `${loc.name} Node #${i}`,
@@ -178,6 +144,7 @@
                     type: types[idCounter % types.length],
                     resolution: resolutions[idCounter % resolutions.length],
                     ip: `192.168.${(idCounter % 50) + 1}.${(idCounter % 250) + 1}`,
+                    url: targetUrl,
                     status: "Online",
                     lat: loc.baseLat + latOffset,
                     lng: loc.baseLng + lngOffset
@@ -197,17 +164,6 @@
                       Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
                       Math.sin(dLon / 2) * Math.sin(dLon / 2);
             return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
-        }
-
-        function openStreamModal(camName, brand, resolution, ip, lat, lng) {
-            document.getElementById('modalTitle').innerText = `Live Feed: ${camName}`;
-            document.getElementById('modalSpecs').innerText = `Brand: ${brand} | Res: ${resolution} | IP Node: ${ip}`;
-            document.getElementById('modalCoordsText').innerText = `LAT: ${lat.toFixed(4)}° N | LNG: ${lng.toFixed(4)}° E | ENCRYPTION: AES-256`;
-            document.getElementById('streamModal').classList.remove('hidden');
-        }
-
-        function closeStreamModal() {
-            document.getElementById('streamModal').classList.add('hidden');
         }
 
         function updateDashboard() {
@@ -252,9 +208,9 @@
                                 <div>Dist: ${distance.toFixed(1)} km</div>
                             </div>
                             <div class="mt-2 pt-2 border-t border-slate-200">
-                                <button type="button" onclick="openStreamModal('${cam.name}', '${cam.brand}', '${cam.resolution}', '${cam.ip}', ${cam.lat}, ${cam.lng})" class="w-full text-center text-xs bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-1.5 px-3 rounded shadow">
-                                    Access Live Stream &rarr;
-                                </button>
+                                <a href="${cam.url}" target="_blank" rel="noopener noreferrer" class="block text-center text-xs bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-1.5 px-3 rounded shadow">
+                                    Open Camera Website &rarr;
+                                </a>
                             </div>
                         </div>
                     `;
@@ -279,7 +235,7 @@
                             <span class="text-[11px] text-cyan-400 font-mono font-medium">${distance.toFixed(1)} km away</span>
                             <div class="space-x-1">
                                 <button type="button" class="map-focus-btn text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-200 px-2 py-1 rounded transition font-medium">Map</button>
-                                <button type="button" class="stream-btn text-[10px] bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-2.5 py-1 rounded transition">Access Stream &rarr;</button>
+                                <a href="${cam.url}" target="_blank" rel="noopener noreferrer" class="stream-btn text-[10px] bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-2.5 py-1 rounded transition inline-block">Access Web &rarr;</a>
                             </div>
                         </div>
                     `;
@@ -288,11 +244,6 @@
                         e.stopPropagation();
                         map.setView([cam.lat, cam.lng], 16, { animate: true });
                         marker.openPopup();
-                    });
-
-                    card.querySelector('.stream-btn').addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        openStreamModal(cam.name, cam.brand, cam.resolution, cam.ip, cam.lat, cam.lng);
                     });
 
                     card.addEventListener('click', () => {
