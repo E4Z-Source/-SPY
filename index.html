@@ -99,7 +99,6 @@
         const types = ["PTZ Dome IP66", "Fixed Bullet IR", "Dome Network Camera", "Motorized Varifocal Bullet", "Outdoor Bullet Pro", "DINION IP Starlight", "Thermal Bi-Spectrum PTZ"];
         const resolutions = ["4K UHD (8MP)", "1080p Full HD", "5MP Q-Series", "4MP Ultra 265", "12MP Fisheye", "1080p 60fps"];
         
-        // Array of real public web camera portals / live streaming directories that open directly in Safari
         const publicStreamPortals = [
             "https://www.insecam.org",
             "https://www.earthcam.com",
@@ -133,8 +132,6 @@
             for (let i = 1; i <= 18; i++) {
                 const latOffset = (Math.sin(idCounter) * 0.035) + ((i % 3) * 0.004);
                 const lngOffset = (Math.cos(idCounter) * 0.035) + ((i % 4) * 0.004);
-                
-                // Assign a working public portal URL to each camera node
                 const targetUrl = publicStreamPortals[idCounter % publicStreamPortals.length];
                 
                 cameras.push({
